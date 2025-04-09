@@ -23,6 +23,46 @@ static REG_TXFE2: u8   = 0x09;
 static REG_TXFE3: u8   = 0x0A;
 static REG_TXFE4: u8   = 0x0B;
 
+static TX_DAC_GAIN_DESC: [&str; 8]  = [
+    "maximum gain - 9 dB",
+    "maximum gain - 6 dB",
+    "maximum gain - 3 dB",
+    "maximum gain (0 dB full scale)",
+    "Max gain - 9 dB with test Vref voltage",
+    "Max gain - 6 dB with test Vref voltage",
+    "Max gain - 3 dB with test Vref voltage",
+    "Max gain, 0 dBFS with test Vref voltage",
+];
+
+static TX_MIXER_GAIN_DESC: [&str; 16] = [
+    "-37.5 dB", "-35.5 dB", "-33.5 dB", "-31.5 dB", "-29.5 dB", "-27.5 dB",
+    "-25.5 dB", "-23.5 dB", "-21.5 dB", "-19.5 dB", "-17.5 dB", "-15.5 dB",
+    "-13.5 dB", "-11.5 dB", "-9.5 dB", "-7.5 dB",
+];
+
+static TX_MIXER_TANK_CAP_DESC: [&str; 8] = [
+    "0 fF", "128 fF", "256 fF", "384 fF", "512 fF", "640 fF", "768 fF",
+    "896 fF",
+];
+
+static TX_MIXER_TANK_RES_DESC: [&str; 8] = [
+    "0.95 kΩ", "1.11 kΩ", "1.32 kΩ", "1.65 kΩ", "2.18 kΩ", "3.24 kΩ",
+    "6.00 kΩ", "none => about 64 kΩ",
+];
+
+static TX_PLL_BW_DESC: [&str; 4] = ["75 KHz", "150 KHz", "225 KHz", "300 KHz",];
+
+static TX_FILTER_BW_DESC: [&str; 16] = [
+    "0.418 Mhz", "0.429 Mhz", "0.440 Mhz", "0.451 Mhz", "0.464 Mhz",
+    "0.476 Mhz", "0.490 Mhz", "0.504 Mhz", "0.520 Mhz", "0.546 Mhz",
+    "0.553 Mhz", "0.572 Mhz", "0.591 Mhz", "0.613 Mhz", "0.635 Mhz",
+    "0.660 Mhz",
+];
+
+static TX_DAC_BW_DESC: [&str; 6] = [
+    "24 taps", "32 taps", "40 taps", "48 taps", "56 taps", "64 taps",
+];
+
 struct SX1255Info {
     driver_enable: bool,
     tx_enable: bool,
@@ -31,12 +71,13 @@ struct SX1255Info {
     rx_freq: u32,
     tx_freq: u32,
     version: u8,
-    tx_dac_gain: &'static str,
-    tx_mixer_gain: f64,
-    tx_mixer_tank_cap: u32,
-    tx_mixer_tank_res: f64,
-    tx_pll_bw: u32,
-    tx_filter_bw: f64,
+    tx_dac_gain: u8,
+    tx_mixer_gain: u8,
+    tx_mixer_tank_cap: u8,
+    tx_mixer_tank_res: u8,
+    tx_pll_bw: u8,
+    tx_filter_bw: u8,
+    tx_dac_bw: u8,
 }
 
 #[derive(Parser)]
@@ -79,34 +120,6 @@ fn freq_to_u32(frfh: u8, frfm: u8, frfl: u8) -> u32 {
      * (32000000.0 / 1048576.0)) as u32
 }
 
-fn tx_dac_gain_to_str(gain: u8) -> &'static str {
-    match gain {
-        0b000 => "maximum gain - 9 dB",
-        0b001 => "maximum gain - 6 dB",
-        0b010 => "maximum gain - 3 dB",
-        0b011 => "maximum gain (0 dB full scale)",
-        0b100 => "Max gain - 9 dB with test Vref voltage",
-        0b101 => "Max gain - 6 dB with test Vref voltage",
-        0b110 => "Max gain - 3 dB with test Vref voltage",
-        0b111 => "Max gain, 0 dBFS with test Vref voltage",
-        _     => "unknown",
-    }
-}
-
-fn tx_mixer_tank_res_to_float(res: u8) -> f64 {
-    match res {
-        0b000 => 0.95,
-        0b001 => 1.11,
-        0b010 => 1.32,
-        0b011 => 1.65,
-        0b100 => 2.18,
-        0b101 => 3.24,
-        0b110 => 6.00,
-        0b111 => 64.0,
-        _     => -1.0,
-    }
-}
-
 fn main() {
     let mut spi = create_spi().expect("SPI initialization");
 
@@ -135,12 +148,13 @@ fn main() {
                 rx_freq: freq_to_u32(frfh_rx, frfm_rx, frfl_rx),
                 tx_freq: freq_to_u32(frfh_tx, frfm_tx, frfl_tx),
                 version: version,
-                tx_dac_gain: tx_dac_gain_to_str((txfe1 & 0b01110000) >> 4),
-                tx_mixer_gain: -37.5 + ((2 * (txfe1 & 0b00001111)) as f64),
-                tx_mixer_tank_cap: 128 * (((txfe2 & 0b00111000) >> 3) as u32),
-                tx_mixer_tank_res: tx_mixer_tank_res_to_float(txfe2 & 0b00000111),
-                tx_pll_bw: (((((txfe3 & 0b01100000) >> 4) as u32) + 1) * 75),
-                tx_filter_bw: 17.15 / ((41 - (txfe3 & 0b00001111)) as f64),
+                tx_dac_gain: (txfe1 & 0b01110000) >> 4,
+                tx_mixer_gain: txfe1 & 0b00001111,
+                tx_mixer_tank_cap: ((txfe2 & 0b00111000) >> 3),
+                tx_mixer_tank_res: txfe2 & 0b00000111,
+                tx_pll_bw: (txfe3 & 0b01100000) >> 4,
+                tx_filter_bw: txfe3 & 0b00001111,
+                tx_dac_bw: txfe4 & 0b00000111,
             };
 
             println!("         PA driver enabled: {}", info.driver_enable);
@@ -150,12 +164,13 @@ fn main() {
             println!("      Rx carrier frequency: {} Hz", info.rx_freq);
             println!("      Tx carrier frequency: {} Hz", info.tx_freq);
             println!("              Version code: 0x{:02X}", info.version);
-            println!("               Tx DAC gain: {}", info.tx_dac_gain);
-            println!("             Tx mixer gain: {} dB", info.tx_mixer_gain);
-            println!(" Tx mixer tank capacitance: {} fF", info.tx_mixer_tank_cap);
-            println!("  Tx mixer tank resistance: {} kΩ", info.tx_mixer_tank_res);
-            println!("          Tx PLL bandwidth: {} KHz", info.tx_pll_bw);
-            println!("       Tx filter bandwidth: {:.6} MHz", info.tx_filter_bw);
+            println!("               Tx DAC gain: {} ({})", info.tx_dac_gain, TX_DAC_GAIN_DESC[info.tx_dac_gain as usize]);
+            println!("             Tx mixer gain: {} ({})", info.tx_mixer_gain, TX_MIXER_GAIN_DESC[info.tx_mixer_gain as usize]);
+            println!(" Tx mixer tank capacitance: {} ({})", info.tx_mixer_tank_cap, TX_MIXER_TANK_CAP_DESC[info.tx_mixer_tank_cap as usize]);
+            println!("  Tx mixer tank resistance: {} ({})", info.tx_mixer_tank_res, TX_MIXER_TANK_RES_DESC[info.tx_mixer_tank_res as usize]);
+            println!("          Tx PLL bandwidth: {} ({})", info.tx_pll_bw, TX_PLL_BW_DESC[info.tx_pll_bw as usize]);
+            println!("       Tx filter bandwidth: {} ({})", info.tx_filter_bw, TX_FILTER_BW_DESC[info.tx_filter_bw as usize]);
+            println!("          Tx DAC bandwidth: {} ({})", info.tx_dac_bw, TX_DAC_BW_DESC[info.tx_dac_bw as usize]);
         },
         Commands::Reset => {
             println!("Reset");
