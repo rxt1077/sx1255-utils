@@ -1,0 +1,8 @@
+[package]
+name = "sx1255-utils"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+clap = { version = "4.5.35", features = ["derive"] }
+spidev = "0.7.0"
