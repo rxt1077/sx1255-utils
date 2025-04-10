@@ -66,12 +66,12 @@ static RX_LNA_GAIN_DESC: [&str; 8] = [
     "highest gain power - 36 dB", "highest gain power - 48 dB", "not used",
 ];
 static RX_PGA_GAIN_DESC: [&str; 16] = [
-    "lowest gain + 2 dB", "lowest gain + 4 dB", "lowest gain + 6 dB",
-    "lowest gain + 8 dB", "lowest gain + 10 db", "lowest gain + 12 dB",
-    "lowest gain + 14 dB", "lowest gain + 16 dB", "lowest gain + 18 dB",
-    "lowest gain + 20 dB", "lowest gain + 22 dB", "lowest gain + 24 dB",
-    "lowest gain + 26 dB", "lowest gain + 28 dB", "lowest gain + 30 dB",
-    "lowest gain + 32 dB",
+    "lowest gain + 0 dB", "lowest gain + 2 dB", "lowest gain + 4 dB",
+    "lowest gain + 6 dB", "lowest gain + 8 dB", "lowest gain + 10 db",
+    "lowest gain + 12 dB", "lowest gain + 14 dB", "lowest gain + 16 dB",
+    "lowest gain + 18 dB", "lowest gain + 20 dB", "lowest gain + 22 dB",
+    "lowest gain + 24 dB", "lowest gain + 26 dB", "lowest gain + 28 dB",
+    "lowest gain + 30 dB",
 ];
 static RX_ZIN_200_DESC: [&str; 2] = ["50Ω", "200Ω",];
 static RX_ADC_BW_DESC: [&str; 8] = [
@@ -209,6 +209,7 @@ fn main() {
             };
 
             println!("General Registers");
+            println!("");
             println!("         PA driver enabled: {}", info.driver_enable);
             println!("                Tx enabled: {}", info.tx_enable);
             println!("                Rx enabled: {}", info.rx_enable);
@@ -218,6 +219,7 @@ fn main() {
             println!("              Version code: 0x{:02X}", info.version);
             println!("");
             println!("Transmitter Front-End Configuration Registers");
+            println!("");
             println!("               Tx DAC gain: {} ({})", info.tx_dac_gain, TX_DAC_GAIN_DESC[info.tx_dac_gain as usize]);
             println!("             Tx mixer gain: {} ({})", info.tx_mixer_gain, TX_MIXER_GAIN_DESC[info.tx_mixer_gain as usize]);
             println!(" Tx mixer tank capacitance: {} ({})", info.tx_mixer_tank_cap, TX_MIXER_TANK_CAP_DESC[info.tx_mixer_tank_cap as usize]);
@@ -227,6 +229,7 @@ fn main() {
             println!("          Tx DAC bandwidth: {} ({})", info.tx_dac_bw, TX_DAC_BW_DESC[info.tx_dac_bw as usize]);
             println!("");
             println!("Receiver Front-End Configuration Registers");
+            println!("");
             println!("               Rx LNA gain: {} ({})", info.rx_lna_gain, RX_LNA_GAIN_DESC[info.rx_lna_gain as usize]);
             println!("               Rx PGA gain: {} ({})", info.rx_pga_gain, RX_PGA_GAIN_DESC[info.rx_pga_gain as usize]);
             println!("           Input Impedance: {} ({})", info.rx_zin_200, RX_ZIN_200_DESC[info.rx_zin_200 as usize]);
