@@ -94,8 +94,8 @@ static IOMAP1_DESC: [&str; 1] = ["pll_lock_tx"];
 static IOMAP2_DESC: [&str; 1] = ["xosc_ready"];
 static IOMAP3_DESC: [&str; 1] = ["pll_lock_rx in Rx mode & pll_lock_tx in all other modes"];
 static CKOUT_ENABLE_DESC: [&str; 2] = [
-    "internal clock (CLK_XTAL) used for Tx DAC",
-    "external clock (CLK_IN) used to Tx DAC"
+    "output clock disabled on pad CLK_OUT",
+    "output clock enabled on pad CLK_OUT",
 ];
 static CK_SELECT_TX_DAC_DESC: [&str; 2] = [
     "internal clock (CLK_XTAL) used for Tx DAC",
@@ -154,9 +154,9 @@ struct SX1255Info {
     iism_tx_disable: bool,
     iism_mode: u8,
     iism_clk_div: u8,
+    r: u32,
     iism_truncation: u8,
     iism_status_flag: u8,
-    r: u32,
 }
 
 #[derive(Parser)]
@@ -195,9 +195,10 @@ enum Commands {
 }
 
 #[derive(Subcommand)]
+#[command(rename_all = "snake_case")]
 enum SetCommands {
     /// Enables the PA driver
-    DriverEnable {
+    DriverEnable{
         #[arg(value_parser=["true", "false"])]
         value: String,
     },
@@ -380,10 +381,9 @@ fn main() {
             println!("Disable IISM Tx (during Rx mode): {}", info.iism_tx_disable);
             println!("                       IISM Mode: {} ({})", info.iism_mode, IISM_MODE_DESC[info.iism_mode as usize]);
             println!("    XTAL/CLK_OUT division factor: {} ({})", info.iism_clk_div, IISM_CLK_DIV_DESC[info.iism_clk_div as usize]);
+            println!(" Decimation/Interpolation factor: {}", info.r);
             println!("            IISM truncation mode: {} ({})", info.iism_truncation, IISM_TRUNCATION_DESC[info.iism_truncation as usize]);
             println!("          IISM error status flag: {} ({})", info.iism_status_flag, IISM_STATUS_FLAG_DESC[info.iism_status_flag as usize]);
-            println!(" Decimation/Interpolation factor: {}", info.r);
-            println!("")
         },
         Commands::Save  { file } => {
             println!("Saving to {}", file.display());
@@ -394,8 +394,21 @@ fn main() {
         Commands::Reset => {
             println!("Reset");
         },
-        Commands::Set { name: _ } => {
-            println!("Setting");
+        Commands::Set { name } => {
+            match name {
+                SetCommands::DriverEnable { value } => {
+                    println!("Setting driver_enable to {}", value);
+                },
+                SetCommands::TxEnable { value } => {
+                    println!("Setting tx_enable to {}", value);
+                },
+                SetCommands::RxEnable { value } => {
+                    println!("Setting rx_enable to {}", value);
+                },
+                SetCommands::RefEnable { value } => {
+                    println!("Setting ref_enable to {}", value);
+                },
+            }
         },
     }
 }
