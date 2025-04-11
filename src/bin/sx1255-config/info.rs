@@ -1,6 +1,47 @@
 use std::io;
 use spidev::{Spidev, SpidevTransfer};
 
+static REG_MODE: u8       = 0x00;
+static REG_FRFH_RX: u8    = 0x01;
+static REG_FRFM_RX: u8    = 0x02;
+static REG_FRFL_RX: u8    = 0x03;
+static REG_FRFH_TX: u8    = 0x04;
+static REG_FRFM_TX: u8    = 0x05;
+static REG_FRFL_TX: u8    = 0x06;
+static REG_VERSION: u8    = 0x07;
+static REG_TXFE1: u8      = 0x08;
+static REG_TXFE2: u8      = 0x09;
+static REG_TXFE3: u8      = 0x0A;
+static REG_TXFE4: u8      = 0x0B;
+static REG_RXFE1: u8      = 0x0C;
+static REG_RXFE2: u8      = 0x0D;
+static REG_RXFE3: u8      = 0x0E;
+static REG_IO_MAP: u8     = 0x0F;
+static REG_CK_SEL: u8     = 0x10;
+static REG_STAT: u8       = 0x11;
+static REG_IISM: u8       = 0x12;
+static REG_DIG_BRIDGE: u8 = 0x13;
+
+fn sx1255_readreg(spi: &mut Spidev, addr: u8) -> io::Result<u8> {
+    let tx_buf = [addr, 0];
+    let mut rx_buf = [0_u8; 2];
+    {
+        let mut transfer = SpidevTransfer::read_write(&tx_buf, &mut rx_buf);
+        spi.transfer(&mut transfer)?;
+    }
+    Ok(rx_buf[1])
+}
+
+fn sx1255_writereg(spi: &mut Spidev, addr: u8, val: u8) -> io::Result<u8> {
+    let tx_buf = [addr | 0b10000000, val];
+    let mut rx_buf = [0_u8; 2];
+    {
+        let mut transfer = SpidevTransfer::read_write(&tx_buf, &mut rx_buf);
+        spi.transfer(&mut transfer)?;
+    }
+    Ok(rx_buf[1])
+}
+
 pub struct SX1255Info {
     pub driver_enable: bool,
     pub tx_enable: bool,
@@ -236,24 +277,24 @@ Disable IISM Tx (during Rx mode): {iism_tx_disable}
             IISM truncation mode: {iism_truncation} ({iism_truncation_opt})
           IISM error status flag: {iism_status_flag} ({iism_status_flag_opt})
 ",
-        driver_enable=sx1255_info.driver_enable,
-        tx_enable=sx1255_info.tx_enable,
-        rx_enable=sx1255_info.rx_enable,
-        ref_enable=sx1255_info.ref_enable,
-        rx_freq=sx1255_info.rx_freq,
-        tx_freq=sx1255_info.tx_freq,
-        version=sx1255_info.version,
-        tx_dac_gain=sx1255_info.tx_dac_gain,
-        tx_dac_gain_opt=TX_DAC_GAIN_OPTS[sx1255_info.tx_dac_gain as usize],
-        tx_mixer_gain=sx1255_info.tx_mixer_gain,
-        tx_mixer_gain_opt=TX_MIXER_GAIN_OPTS[sx1255_info.tx_mixer_gain as usize],
-        tx_mixer_tank_cap=sx1255_info.tx_mixer_tank_cap,
-        tx_mixer_tank_cap_opt=TX_MIXER_TANK_CAP_OPTS[sx1255_info.tx_mixer_tank_cap as usize],
-        tx_mixer_tank_res=sx1255_info.tx_mixer_tank_res,
-        tx_mixer_tank_res_opt=TX_MIXER_TANK_RES_OPTS[sx1255_info.tx_mixer_tank_res as usize],
-        tx_pll_bw=sx1255_info.tx_pll_bw,
-        tx_pll_bw_opt=TX_PLL_BW_OPTS[sx1255_info.tx_pll_bw as usize],
-        tx_filter_bw=sx1255_info.tx_filter_bw,
+        driver_enable         = sx1255_info.driver_enable,
+        tx_enable             = sx1255_info.tx_enable,
+        rx_enable             = sx1255_info.rx_enable,
+        ref_enable            = sx1255_info.ref_enable,
+        rx_freq               = sx1255_info.rx_freq,
+        tx_freq               = sx1255_info.tx_freq,
+        version               = sx1255_info.version,
+        tx_dac_gain           = sx1255_info.tx_dac_gain,
+        tx_dac_gain_opt       = TX_DAC_GAIN_OPTS[sx1255_info.tx_dac_gain as usize],
+        tx_mixer_gain         = sx1255_info.tx_mixer_gain,
+        tx_mixer_gain_opt     = TX_MIXER_GAIN_OPTS[sx1255_info.tx_mixer_gain as usize],
+        tx_mixer_tank_cap     = sx1255_info.tx_mixer_tank_cap,
+        tx_mixer_tank_cap_opt = TX_MIXER_TANK_CAP_OPTS[sx1255_info.tx_mixer_tank_cap as usize],
+        tx_mixer_tank_res     = sx1255_info.tx_mixer_tank_res,
+        tx_mixer_tank_res_opt = TX_MIXER_TANK_RES_OPTS[sx1255_info.tx_mixer_tank_res as usize],
+        tx_pll_bw             = sx1255_info.tx_pll_bw,
+        tx_pll_bw_opt         = TX_PLL_BW_OPTS[sx1255_info.tx_pll_bw as usize],
+        tx_filter_bw          = sx1255_info.tx_filter_bw,
         tx_filter_bw_opt=TX_FILTER_BW_OPTS[sx1255_info.tx_filter_bw as usize],
         tx_dac_bw=sx1255_info.tx_dac_bw,
         tx_dac_bw_opt=TX_DAC_BW_OPTS[sx1255_info.tx_dac_bw as usize],
@@ -296,43 +337,12 @@ Disable IISM Tx (during Rx mode): {iism_tx_disable}
         iism_mode_opt=IISM_MODE_OPTS[sx1255_info.iism_mode as usize],
         iism_clk_div=sx1255_info.iism_clk_div,
         iism_clk_div_opt=IISM_CLK_DIV_OPTS[sx1255_info.iism_clk_div as usize],
-        r=sx1255_info.r,
-        iism_truncation=sx1255_info.iism_truncation,
-        iism_truncation_opt=IISM_TRUNCATION_OPTS[sx1255_info.iism_truncation as usize],
-        iism_status_flag=sx1255_info.iism_status_flag,
-        iism_status_flag_opt=IISM_STATUS_FLAG_OPTS[sx1255_info.iism_status_flag as usize],
+        r = sx1255_info.r,
+        iism_truncation = sx1255_info.iism_truncation,
+        iism_truncation_opt = IISM_TRUNCATION_OPTS[sx1255_info.iism_truncation as usize],
+        iism_status_flag = sx1255_info.iism_status_flag,
+        iism_status_flag_opt = IISM_STATUS_FLAG_OPTS[sx1255_info.iism_status_flag as usize],
     );
-}
-
-static REG_MODE: u8       = 0x00;
-static REG_FRFH_RX: u8    = 0x01;
-static REG_FRFM_RX: u8    = 0x02;
-static REG_FRFL_RX: u8    = 0x03;
-static REG_FRFH_TX: u8    = 0x04;
-static REG_FRFM_TX: u8    = 0x05;
-static REG_FRFL_TX: u8    = 0x06;
-static REG_VERSION: u8    = 0x07;
-static REG_TXFE1: u8      = 0x08;
-static REG_TXFE2: u8      = 0x09;
-static REG_TXFE3: u8      = 0x0A;
-static REG_TXFE4: u8      = 0x0B;
-static REG_RXFE1: u8      = 0x0C;
-static REG_RXFE2: u8      = 0x0D;
-static REG_RXFE3: u8      = 0x0E;
-static REG_IO_MAP: u8     = 0x0F;
-static REG_CK_SEL: u8     = 0x10;
-static REG_STAT: u8       = 0x11;
-static REG_IISM: u8       = 0x12;
-static REG_DIG_BRIDGE: u8 = 0x13;
-
-fn sx1255_readreg(spi: &mut Spidev, addr: u8) -> io::Result<u8> {
-    let tx_buf = [addr, 0];
-    let mut rx_buf = [0_u8; 2];
-    {
-        let mut transfer = SpidevTransfer::read_write(&tx_buf, &mut rx_buf);
-        spi.transfer(&mut transfer)?;
-    }
-    Ok(rx_buf[1])
 }
 
 fn freq_to_u32(frfh: u8, frfm: u8, frfl: u8) -> u32 {
@@ -342,7 +352,7 @@ fn freq_to_u32(frfh: u8, frfm: u8, frfl: u8) -> u32 {
      * (32000000.0 / 1048576.0)) as u32
 }
 
-fn calc_r(mant: u8, m: u8, n: u8) ->  u32 {
+fn calc_r(mant: u8, m: u8, n: u8) -> u32 {
     // r = MANT*3^m*2^n
     // where MANT is 8 for the 1st set and 9 for the second set,
     // m can be 0 or 1, and n is an integer between 0 and 6
@@ -350,7 +360,7 @@ fn calc_r(mant: u8, m: u8, n: u8) ->  u32 {
     (mant as u32) * 3_u32.pow(m.into()) * 2_u32.pow(n.into())
 }
 
-pub fn read_info(spi: &mut Spidev, sx1255_info: &mut SX1255Info) {
+pub fn get_info(spi: &mut Spidev, sx1255_info: &mut SX1255Info) {
 
             // read the registers
             let mode       = sx1255_readreg(spi, REG_MODE).expect("read mode register");
@@ -423,4 +433,119 @@ pub fn read_info(spi: &mut Spidev, sx1255_info: &mut SX1255Info) {
             sx1255_info.iism_truncation   = (dig_bridge & 0b00000100) >> 2;
             sx1255_info.iism_status_flag  = (dig_bridge & 0b00000010) >> 1;
             sx1255_info.r                 = r;
+}
+
+fn bool_to_u8(flag: bool) -> u8 {
+    if flag { 1 } else { 0 }
+}
+
+// returns high, middle, low
+fn u32_to_freq(freq: u32) -> (u8, u8, u8) {
+    let adjusted_freq = ((freq as f64) * (1048576.0 / 32000000.0)) as u32;
+    ((adjusted_freq >> 16) as u8, (adjusted_freq >> 8) as u8, adjusted_freq as u8)
+}
+
+pub static VALID_R_VALUES: [u32; 28]  = [
+    8, 16, 24, 32, 48, 64, 96, 128, 192, 256, 384, 512, 768, 1536,  // set 1
+    9, 18, 27, 36, 54, 72, 108, 144, 216, 288, 432, 576, 864, 1728, // set 2
+];
+
+fn r_to_mant_m_n(r: u32) -> (u8, u8, u8) {
+// the easiest way I could think to do this was with a simple match
+    match r {
+        // set 1
+        8    => (8,0,0),
+        16   => (8,0,1),
+        24   => (8,1,0),
+        32   => (8,0,2),
+        48   => (8,1,1),
+        64   => (8,0,3),
+        96   => (8,1,2),
+        128  => (8,0,4),
+        192  => (8,1,3),
+        256  => (8,0,5),
+        384  => (8,1,4),
+        512  => (8,0,6),
+        768  => (8,1,5),
+        1536 => (8,1,6),
+        // set 2
+        9    => (9,0,0),
+        18   => (9,0,1),
+        27   => (9,1,0),
+        36   => (9,0,2),
+        54   => (9,1,1),
+        72   => (9,0,3),
+        108  => (9,1,2),
+        144  => (9,0,4),
+        216  => (9,1,3),
+        288  => (9,0,5),
+        432  => (9,1,4),
+        576  => (9,0,6),
+        864  => (9,1,5),
+        1728 => (9,1,6),
+        _    => panic!("invalid r value"),
+    }
+}
+
+pub fn set_info(spi: &mut Spidev, sx1255_info: SX1255Info) {
+
+    // build the register values from the info struct
+    let mode = bool_to_u8(sx1255_info.driver_enable) << 3 |
+               bool_to_u8(sx1255_info.tx_enable)     << 2 |
+               bool_to_u8(sx1255_info.rx_enable)     << 1 |
+               bool_to_u8(sx1255_info.ref_enable);
+    let (frfh_rx, frfm_rx, frfl_rx) = u32_to_freq(sx1255_info.rx_freq);
+    let (frfh_tx, frfm_tx, frfl_tx) = u32_to_freq(sx1255_info.tx_freq);
+    let txfe1 = sx1255_info.tx_dac_gain << 4 |
+                sx1255_info.tx_mixer_gain;
+    let txfe2 = sx1255_info.tx_mixer_tank_cap << 3 |
+                sx1255_info.tx_mixer_tank_res;
+    let txfe3 = sx1255_info.tx_pll_bw << 5 |
+                sx1255_info.tx_filter_bw;
+    let txfe4 = sx1255_info.tx_dac_bw;
+    let rxfe1 = sx1255_info.rx_lna_gain << 5 |
+                sx1255_info.rx_pga_gain << 1 |
+                sx1255_info.rx_zin_200;
+    let rxfe2 = sx1255_info.rx_adc_bw   << 5 |
+                sx1255_info.rx_adc_trim << 2 |
+                sx1255_info.rx_pga_bw;
+    let rxfe3 = sx1255_info.rx_pll_bw << 1 |
+                bool_to_u8(sx1255_info.rx_adc_temp);
+    let iomap = sx1255_info.iomap0 << 6 |
+                sx1255_info.iomap1 << 4 |
+                sx1255_info.iomap2 << 2 |
+                sx1255_info.iomap3;
+    let ck_sel = bool_to_u8(sx1255_info.dig_loopback_en) << 3 |
+                 bool_to_u8(sx1255_info.rf_loopback_en)  << 2 |
+                 sx1255_info.ckout_enable                << 1 |
+                 sx1255_info.ck_select_tx_dac;
+    let iism = bool_to_u8(sx1255_info.iism_rx_disable) << 7 |
+               bool_to_u8(sx1255_info.iism_tx_disable) << 6 |
+               sx1255_info.iism_mode                   << 4 |
+               sx1255_info.iism_clk_div;
+    let (mant, m, n) = r_to_mant_m_n(sx1255_info.r);
+    let dig_bridge = mant                        << 7 |
+                     m                           << 6 |
+                     n                           << 3 |
+                     sx1255_info.iism_truncation << 2;
+
+    // write the registers
+    _ = sx1255_writereg(spi, REG_MODE, mode);
+    _ = sx1255_writereg(spi, REG_FRFH_RX, frfh_rx);
+    _ = sx1255_writereg(spi, REG_FRFM_RX, frfm_rx);
+    _ = sx1255_writereg(spi, REG_FRFL_RX, frfl_rx);
+    _ = sx1255_writereg(spi, REG_FRFH_TX, frfh_tx);
+    _ = sx1255_writereg(spi, REG_FRFM_TX, frfm_tx);
+    _ = sx1255_writereg(spi, REG_FRFL_TX, frfl_tx);
+    _ = sx1255_writereg(spi, REG_TXFE1, txfe1);
+    _ = sx1255_writereg(spi, REG_TXFE2, txfe2);
+    _ = sx1255_writereg(spi, REG_TXFE3, txfe3);
+    _ = sx1255_writereg(spi, REG_TXFE4, txfe4);
+    _ = sx1255_writereg(spi, REG_RXFE1, rxfe1);
+    _ = sx1255_writereg(spi, REG_RXFE2, rxfe2);
+    _ = sx1255_writereg(spi, REG_RXFE3, rxfe3);
+    _ = sx1255_writereg(spi, REG_IO_MAP, iomap);
+    _ = sx1255_writereg(spi, REG_CK_SEL, ck_sel);
+    _ = sx1255_writereg(spi, REG_IISM, iism);
+    _ = sx1255_writereg(spi, REG_DIG_BRIDGE, dig_bridge);
 }

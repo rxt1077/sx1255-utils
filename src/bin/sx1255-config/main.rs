@@ -3,7 +3,7 @@ use clap::{Parser, Subcommand};
 use spidev::{Spidev, SpidevOptions, SpiModeFlags};
 use std::path::PathBuf;
 
-use crate::info::{SX1255Info, read_info, print_info};
+use crate::info::{SX1255Info, get_info, print_info, set_info};
 
 pub mod info;
 
@@ -73,6 +73,16 @@ enum SetCommands {
         #[arg(value_parser=["true", "false"])]
         value: String,
     },
+    /// Sets the Rx frequency
+    RxFreq {
+        #[arg(value_parser=clap::value_parser!(u32).range(300000000..500000000))]
+        freq: u32,
+    },
+    /// Sets the Tx frequency
+    TxFreq {
+        #[arg(value_parser=clap::value_parser!(u32).range(300000000..500000000))]
+        freq: u32,
+    },
 }
 
 fn create_spi() -> io::Result<Spidev> {
@@ -86,7 +96,7 @@ fn main() {
 
     let cli = Cli::parse();
     let mut sx1255_info = SX1255Info::default();
-    read_info(&mut spi, &mut sx1255_info);
+    get_info(&mut spi, &mut sx1255_info);
 
     match &cli.command {
         Commands::Info => {
@@ -99,21 +109,55 @@ fn main() {
             println!("Loading from {}", file.display());
         },
         Commands::Reset => {
-            println!("Reset");
+            println!("Resetting");
         },
         Commands::Set { name } => {
             match name {
                 SetCommands::DriverEnable { value } => {
                     println!("Setting driver_enable to {}", value);
+                    match value.as_str() {
+                        "true"  => sx1255_info.driver_enable = true,
+                        "false" => sx1255_info.driver_enable = false,
+                        _       => panic!("Invalid input"),
+                    }
+                    set_info(&mut spi, sx1255_info);
                 },
                 SetCommands::TxEnable { value } => {
                     println!("Setting tx_enable to {}", value);
+                    match value.as_str() {
+                        "true"  => sx1255_info.tx_enable = true,
+                        "false" => sx1255_info.tx_enable = false,
+                        _       => panic!("Invalid input"),
+                    }
+                    set_info(&mut spi, sx1255_info);
                 },
                 SetCommands::RxEnable { value } => {
                     println!("Setting rx_enable to {}", value);
+                    match value.as_str() {
+                        "true"  => sx1255_info.rx_enable = true,
+                        "false" => sx1255_info.rx_enable = false,
+                        _       => panic!("Invalid input"),
+                    }
+                    set_info(&mut spi, sx1255_info);
                 },
                 SetCommands::RefEnable { value } => {
                     println!("Setting ref_enable to {}", value);
+                    match value.as_str() {
+                        "true"  => sx1255_info.ref_enable = true,
+                        "false" => sx1255_info.ref_enable = false,
+                        _       => panic!("Invalid input"),
+                    }
+                    set_info(&mut spi, sx1255_info);
+                },
+                SetCommands::RxFreq { freq } => {
+                    println!("Setting Rx frequency to {}", *freq);
+                    sx1255_info.rx_freq = *freq;
+                    set_info(&mut spi, sx1255_info);
+                },
+                SetCommands::TxFreq { freq } => {
+                    println!("Setting Tx frequency to {}", *freq);
+                    sx1255_info.tx_freq = *freq;
+                    set_info(&mut spi, sx1255_info);
                 },
             }
         },
