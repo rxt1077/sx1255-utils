@@ -109,6 +109,11 @@ static IISM_MODE_DESC: [&str; 4] = ["mode A", "mode B1", "mode B2", "not used"];
 static IISM_CLK_DIV_DESC: [&str; 9] = [
     "1", "2", "4", "8", "12", "16", "24", "32", "48",
 ];
+static IISM_TRUNCATION_DESC: [&str; 2] = [
+    "MSB is truncated, alignment on LSB",
+    "LSB is truncated, alignment on MSB",
+];
+static IISM_STATUS_FLAG_DESC: [&str; 2] = ["no error", "error, IISM off"];
 
 struct SX1255Info {
     driver_enable: bool,
@@ -149,6 +154,9 @@ struct SX1255Info {
     iism_tx_disable: bool,
     iism_mode: u8,
     iism_clk_div: u8,
+    iism_truncation: u8,
+    iism_status_flag: u8,
+    r: u32,
 }
 
 #[derive(Parser)]
@@ -233,6 +241,14 @@ fn freq_to_u32(frfh: u8, frfm: u8, frfl: u8) -> u32 {
      * (32000000.0 / 1048576.0)) as u32
 }
 
+fn calc_r(mant: u8, m: u8, n: u8) ->  u32 {
+    // r = MANT*3^m*2^n
+    // where MANT is 8 for the 1st set and 9 for the second set,
+    // m can be 0 or 1, and n is an integer between 0 and 6
+    
+    (mant as u32) * 3_u32.pow(m.into()) * 2_u32.pow(n.into())
+}
+
 fn main() {
     let mut spi = create_spi().expect("SPI initialization");
 
@@ -260,6 +276,13 @@ fn main() {
             let stat = sx1255_readreg(&mut spi, REG_STAT).expect("read STAT register");
             let iism = sx1255_readreg(&mut spi, REG_IISM).expect("read IISM register");
             let dig_bridge = sx1255_readreg(&mut spi, REG_DIG_BRIDGE).expect("read DIG_BRIDGE register");
+
+            // calculate the decimation/interpolation factor
+            let r = calc_r(
+                if ((dig_bridge & 0b10000000) >> 7) == 0 { 8 } else { 9 }, // MANT is 8 or 9 depending on bit
+                (dig_bridge & 0b01000000) >> 6, // m
+                (dig_bridge & 0b00111000) >> 3, // n
+                );
 
             let info = SX1255Info {
                 driver_enable: (mode & 0b00001000) != 0,
@@ -300,6 +323,9 @@ fn main() {
                 iism_tx_disable: ((iism & 0b01000000) >> 6) != 0,
                 iism_mode:        (iism & 0b00110000) >> 4,
                 iism_clk_div:      iism & 0b00001111,
+                iism_truncation:  (dig_bridge & 0b00000100) >> 2,
+                iism_status_flag: (dig_bridge & 0b00000010) >> 1,
+                r: r,
             };
 
             println!("General Registers");
@@ -354,6 +380,9 @@ fn main() {
             println!("Disable IISM Tx (during Rx mode): {}", info.iism_tx_disable);
             println!("                       IISM Mode: {} ({})", info.iism_mode, IISM_MODE_DESC[info.iism_mode as usize]);
             println!("    XTAL/CLK_OUT division factor: {} ({})", info.iism_clk_div, IISM_CLK_DIV_DESC[info.iism_clk_div as usize]);
+            println!("            IISM truncation mode: {} ({})", info.iism_truncation, IISM_TRUNCATION_DESC[info.iism_truncation as usize]);
+            println!("          IISM error status flag: {} ({})", info.iism_status_flag, IISM_STATUS_FLAG_DESC[info.iism_status_flag as usize]);
+            println!(" Decimation/Interpolation factor: {}", info.r);
             println!("")
         },
         Commands::Save  { file } => {
@@ -365,8 +394,8 @@ fn main() {
         Commands::Reset => {
             println!("Reset");
         },
-        Commands::Set { name } => {
-            println!("Set");
+        Commands::Set { name: _ } => {
+            println!("Setting");
         },
     }
 }
