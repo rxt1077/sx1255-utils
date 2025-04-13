@@ -4,7 +4,7 @@ use spidev::{Spidev, SpidevOptions, SpiModeFlags};
 use std::path::PathBuf;
 
 use crate::info::{SX1255Info, get_info, print_info, set_info};
-use crate::file::{write_file};
+use crate::file::{write_file, read_file};
 
 pub mod info;
 pub mod file;
@@ -41,7 +41,7 @@ enum Commands {
     /// Loads device state from file
     Load {
         /// file name
-        #[arg(short, long)]
+        #[arg()]
         file: PathBuf,
     },
     /// Sets a register variable
@@ -110,6 +110,7 @@ fn main() {
         },
         Commands::Load { file } => {
             println!("Loading from {}", file.display());
+            read_file(&mut sx1255_info, file).expect("file read");
         },
         Commands::Reset => {
             println!("Resetting");
