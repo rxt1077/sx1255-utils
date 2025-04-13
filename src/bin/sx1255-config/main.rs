@@ -35,7 +35,7 @@ enum Commands {
     /// Save device state to file
     Save {
         /// file name
-        #[arg(short, long)]
+        #[arg()]
         file: PathBuf,
     },
     /// Loads device state from file

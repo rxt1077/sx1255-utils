@@ -7,7 +7,7 @@ use serde::Deserialize;
 use crate::SX1255Info;
 
 pub fn write_file(sx1255_info: SX1255Info, filename: &PathBuf) -> std::io::Result<()> {
-    let mut file = File::open(filename)?;
+    let mut file = File::create(filename)?;
     write!(file, "
 # SX1255 configuration
 # created by sx1255-config on {datetime}
