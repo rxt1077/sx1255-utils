@@ -4,8 +4,10 @@ use spidev::{Spidev, SpidevOptions, SpiModeFlags};
 use std::path::PathBuf;
 
 use crate::info::{SX1255Info, get_info, print_info, set_info};
+use crate::file::{write_file};
 
 pub mod info;
+pub mod file;
 
 static SPI_DEV: &str = "/dev/spidev0.0";
 static SPI_OPTS: SpidevOptions = SpidevOptions {
@@ -104,6 +106,7 @@ fn main() {
         },
         Commands::Save  { file } => {
             println!("Saving to {}", file.display());
+            write_file(sx1255_info, file).expect("file write");
         },
         Commands::Load { file } => {
             println!("Loading from {}", file.display());
