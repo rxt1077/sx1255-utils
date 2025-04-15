@@ -1,5 +1,7 @@
 use std::io;
 use spidev::{Spidev, SpidevTransfer};
+use serde::Deserialize;
+use crate::opts::{OPTS};
 
 static REG_MODE: u8       = 0x00;
 static REG_FRFH_RX: u8    = 0x01;
@@ -42,6 +44,8 @@ fn sx1255_writereg(spi: &mut Spidev, addr: u8, val: u8) -> io::Result<u8> {
     Ok(rx_buf[1])
 }
 
+#[derive(Debug, Deserialize, Copy, Clone)]
+#[serde(default)]
 pub struct SX1255Info {
     pub driver_enable: bool,
     pub tx_enable: bool,
@@ -136,88 +140,23 @@ impl Default for SX1255Info {
     }
 }
 
-static TX_DAC_GAIN_OPTS: [&str; 8]  = [
-    "maximum gain - 9 dB",
-    "maximum gain - 6 dB",
-    "maximum gain - 3 dB",
-    "maximum gain (0 dB full scale)",
-    "Max gain - 9 dB with test Vref voltage",
-    "Max gain - 6 dB with test Vref voltage",
-    "Max gain - 3 dB with test Vref voltage",
-    "Max gain, 0 dBFS with test Vref voltage",
-];
-static TX_MIXER_GAIN_OPTS: [&str; 16] = [
-    "-37.5 dB", "-35.5 dB", "-33.5 dB", "-31.5 dB", "-29.5 dB", "-27.5 dB",
-    "-25.5 dB", "-23.5 dB", "-21.5 dB", "-19.5 dB", "-17.5 dB", "-15.5 dB",
-    "-13.5 dB", "-11.5 dB", "-9.5 dB", "-7.5 dB",
-];
-static TX_MIXER_TANK_CAP_OPTS: [&str; 8] = [
-    "0 fF", "128 fF", "256 fF", "384 fF", "512 fF", "640 fF", "768 fF",
-    "896 fF",
-];
-static TX_MIXER_TANK_RES_OPTS: [&str; 8] = [
-    "0.95 kΩ", "1.11 kΩ", "1.32 kΩ", "1.65 kΩ", "2.18 kΩ", "3.24 kΩ",
-    "6.00 kΩ", "none => about 64 kΩ",
-];
-static TX_PLL_BW_OPTS: [&str; 4] = ["75 KHz", "150 KHz", "225 KHz", "300 KHz",];
-static TX_FILTER_BW_OPTS: [&str; 16] = [
-    "0.418 Mhz", "0.429 Mhz", "0.440 Mhz", "0.451 Mhz", "0.464 Mhz",
-    "0.476 Mhz", "0.490 Mhz", "0.504 Mhz", "0.520 Mhz", "0.546 Mhz",
-    "0.553 Mhz", "0.572 Mhz", "0.591 Mhz", "0.613 Mhz", "0.635 Mhz",
-    "0.660 Mhz",
-];
-static TX_DAC_BW_OPTS: [&str; 6] = [
-    "24 taps", "32 taps", "40 taps", "48 taps", "56 taps", "64 taps",
-];
-static RX_LNA_GAIN_OPTS: [&str; 8] = [
-    "not used", "highest gain power - 0 dB", "highest gain power - 6 dB",
-    "highest gain power - 12 dB", "highest gain power - 24 dB",
-    "highest gain power - 36 dB", "highest gain power - 48 dB", "not used",
-];
-static RX_PGA_GAIN_OPTS: [&str; 16] = [
-    "lowest gain + 0 dB", "lowest gain + 2 dB", "lowest gain + 4 dB",
-    "lowest gain + 6 dB", "lowest gain + 8 dB", "lowest gain + 10 db",
-    "lowest gain + 12 dB", "lowest gain + 14 dB", "lowest gain + 16 dB",
-    "lowest gain + 18 dB", "lowest gain + 20 dB", "lowest gain + 22 dB",
-    "lowest gain + 24 dB", "lowest gain + 26 dB", "lowest gain + 28 dB",
-    "lowest gain + 30 dB",
-];
-static RX_ZIN_200_OPTS: [&str; 2] = ["50Ω", "200Ω",];
-static RX_ADC_BW_OPTS: [&str; 8] = [
-    "unused", "use 0x01 instead ???", "100 kHz < BW < 400 kHz", "unused",
-    "unused", "200 kHz < BW < 400 kHz", "unused", "BW > 400 kHz",
-];
-static RX_PGA_BW_OPTS: [&str; 4] = [
-    "1500 kHz", "1000 kHz", "750 kHz", "500 kHz"
-];
-static RX_PLL_BW_OPTS: [&str; 4] = ["75 KHz", "150 KHz", "225 KHz", "300 KHz",];
-static IOMAP0_OPTS: [&str; 4] = [
-    "pll_lock_rx", "pll_lock_rx", "pll_lock_rx", "eol"
-];
-static IOMAP1_OPTS: [&str; 1] = ["pll_lock_tx"];
-static IOMAP2_OPTS: [&str; 1] = ["xosc_ready"];
-static IOMAP3_OPTS: [&str; 1] = ["pll_lock_rx in Rx mode & pll_lock_tx in all other modes"];
-static CKOUT_ENABLE_OPTS: [&str; 2] = [
-    "output clock disabled on pad CLK_OUT",
-    "output clock enabled on pad CLK_OUT",
-];
-static CK_SELECT_TX_DAC_OPTS: [&str; 2] = [
+pub static CK_SELECT_TX_DAC_OPTS: [&str; 2] = [
     "internal clock (CLK_XTAL) used for Tx DAC",
     "external clock (CLK_IN) used for Tx DAC",
 ];
-static EOL_OPTS: [&str; 2] = [
+pub static EOL_OPTS: [&str; 2] = [
     "0 to VBAT > EOL threshold",
     "1 to VBAT < EOL threshold (battery low)",
 ];
-static IISM_MODE_OPTS: [&str; 4] = ["mode A", "mode B1", "mode B2", "not used"];
-static IISM_CLK_DIV_OPTS: [&str; 9] = [
+pub static IISM_MODE_OPTS: [&str; 4] = ["mode A", "mode B1", "mode B2", "not used"];
+pub static IISM_CLK_DIV_OPTS: [&str; 9] = [
     "1", "2", "4", "8", "12", "16", "24", "32", "48",
 ];
-static IISM_TRUNCATION_OPTS: [&str; 2] = [
+pub static IISM_TRUNCATION_OPTS: [&str; 2] = [
     "MSB is truncated, alignment on LSB",
     "LSB is truncated, alignment on MSB",
 ];
-static IISM_STATUS_FLAG_OPTS: [&str; 2] = ["no error", "error, IISM off"];
+pub static IISM_STATUS_FLAG_OPTS: [&str; 2] = ["no error", "error, IISM off"];
 
 pub fn print_info(sx1255_info: SX1255Info) {
     println!("
@@ -285,45 +224,45 @@ Disable IISM Tx (during Rx mode): {iism_tx_disable}
         tx_freq               = sx1255_info.tx_freq,
         version               = sx1255_info.version,
         tx_dac_gain           = sx1255_info.tx_dac_gain,
-        tx_dac_gain_opt       = TX_DAC_GAIN_OPTS[sx1255_info.tx_dac_gain as usize],
+        tx_dac_gain_opt       = OPTS.tx_dac_gain[sx1255_info.tx_dac_gain as usize],
         tx_mixer_gain         = sx1255_info.tx_mixer_gain,
-        tx_mixer_gain_opt     = TX_MIXER_GAIN_OPTS[sx1255_info.tx_mixer_gain as usize],
+        tx_mixer_gain_opt     = OPTS.tx_mixer_gain[sx1255_info.tx_mixer_gain as usize],
         tx_mixer_tank_cap     = sx1255_info.tx_mixer_tank_cap,
-        tx_mixer_tank_cap_opt = TX_MIXER_TANK_CAP_OPTS[sx1255_info.tx_mixer_tank_cap as usize],
+        tx_mixer_tank_cap_opt = OPTS.tx_mixer_tank_cap[sx1255_info.tx_mixer_tank_cap as usize],
         tx_mixer_tank_res     = sx1255_info.tx_mixer_tank_res,
-        tx_mixer_tank_res_opt = TX_MIXER_TANK_RES_OPTS[sx1255_info.tx_mixer_tank_res as usize],
+        tx_mixer_tank_res_opt = OPTS.tx_mixer_tank_res[sx1255_info.tx_mixer_tank_res as usize],
         tx_pll_bw             = sx1255_info.tx_pll_bw,
-        tx_pll_bw_opt         = TX_PLL_BW_OPTS[sx1255_info.tx_pll_bw as usize],
+        tx_pll_bw_opt         = OPTS.tx_pll_bw[sx1255_info.tx_pll_bw as usize],
         tx_filter_bw          = sx1255_info.tx_filter_bw,
-        tx_filter_bw_opt      = TX_FILTER_BW_OPTS[sx1255_info.tx_filter_bw as usize],
+        tx_filter_bw_opt      = OPTS.tx_filter_bw[sx1255_info.tx_filter_bw as usize],
         tx_dac_bw             = sx1255_info.tx_dac_bw,
-        tx_dac_bw_opt         = TX_DAC_BW_OPTS[sx1255_info.tx_dac_bw as usize],
+        tx_dac_bw_opt         = OPTS.tx_dac_bw[sx1255_info.tx_dac_bw as usize],
         rx_lna_gain           = sx1255_info.rx_lna_gain,
-        rx_lna_gain_opts      = RX_LNA_GAIN_OPTS[sx1255_info.rx_lna_gain as usize],
+        rx_lna_gain_opts      = OPTS.rx_lna_gain[sx1255_info.rx_lna_gain as usize],
         rx_pga_gain           = sx1255_info.rx_pga_gain,
-        rx_pga_gain_opts      = RX_PGA_GAIN_OPTS[sx1255_info.rx_pga_gain as usize],
+        rx_pga_gain_opts      = OPTS.rx_pga_gain[sx1255_info.rx_pga_gain as usize],
         rx_zin_200            = sx1255_info.rx_zin_200,
-        rx_zin_200_opts       = RX_ZIN_200_OPTS[sx1255_info.rx_zin_200 as usize],
+        rx_zin_200_opts       = OPTS.rx_zin_200[sx1255_info.rx_zin_200 as usize],
         rx_adc_bw             = sx1255_info.rx_adc_bw,
-        rx_adc_bw_opts        = RX_ADC_BW_OPTS[sx1255_info.rx_adc_bw as usize],
+        rx_adc_bw_opts        = OPTS.rx_adc_bw[sx1255_info.rx_adc_bw as usize],
         rx_adc_trim           = sx1255_info.rx_adc_trim,
         rx_pga_bw             = sx1255_info.rx_pga_bw,
-        rx_pga_bw_opts        = RX_PGA_BW_OPTS[sx1255_info.rx_pga_bw as usize],
+        rx_pga_bw_opts        = OPTS.rx_pga_bw[sx1255_info.rx_pga_bw as usize],
         rx_pll_bw             = sx1255_info.rx_pll_bw,
-        rx_pll_bw_opts        = RX_PLL_BW_OPTS[sx1255_info.rx_pll_bw as usize],
+        rx_pll_bw_opts        = OPTS.rx_pll_bw[sx1255_info.rx_pll_bw as usize],
         rx_adc_temp           = sx1255_info.rx_adc_temp,
         iomap0                = sx1255_info.iomap0,
-        iomap0_opt            = IOMAP0_OPTS[sx1255_info.iomap0 as usize],
+        iomap0_opt            = OPTS.iomap0[sx1255_info.iomap0 as usize],
         iomap1                = sx1255_info.iomap1,
-        iomap1_opt            = IOMAP1_OPTS[sx1255_info.iomap1 as usize],
+        iomap1_opt            = OPTS.iomap1[sx1255_info.iomap1 as usize],
         iomap2                = sx1255_info.iomap2,
-        iomap2_opt            = IOMAP2_OPTS[sx1255_info.iomap2 as usize],
+        iomap2_opt            = OPTS.iomap2[sx1255_info.iomap2 as usize],
         iomap3                = sx1255_info.iomap3,
-        iomap3_opt            = IOMAP3_OPTS[sx1255_info.iomap3 as usize],
+        iomap3_opt            = OPTS.iomap3[sx1255_info.iomap3 as usize],
         dig_loopback_en       = sx1255_info.dig_loopback_en,
         rf_loopback_en        = sx1255_info.rf_loopback_en,
         ckout_enable          = sx1255_info.ckout_enable,
-        ckout_enable_opt      = CKOUT_ENABLE_OPTS[sx1255_info.ckout_enable as usize],
+        ckout_enable_opt      = OPTS.ckout_enable[sx1255_info.ckout_enable as usize],
         ck_select_tx_dac      = sx1255_info.ck_select_tx_dac,
         ck_select_tx_dac_opt  = CK_SELECT_TX_DAC_OPTS[sx1255_info.ck_select_tx_dac as usize],
         eol                   = sx1255_info.eol,

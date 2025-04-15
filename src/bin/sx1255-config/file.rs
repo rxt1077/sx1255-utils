@@ -1,18 +1,18 @@
 use std::fs::{File, read_to_string};
 use std::path::PathBuf;
-use std::io::Write;
+use std::io::{Write, Error};
 use chrono::prelude::*;
-use serde::Deserialize;
 
-use crate::SX1255Info;
+use crate::info::{SX1255Info, VALID_R_VALUES};
 
 pub fn write_file(sx1255_info: SX1255Info, filename: &PathBuf) -> std::io::Result<()> {
+    // this doesn't use serialization because we want to put a bunch of
+    // comments in for people editing the file by hand
     let mut file = File::create(filename)?;
-    write!(file, "
-# SX1255 configuration
+    write!(file,
+"# SX1255 configuration
 # created by sx1255-config on {datetime}
 
-[general]
 driver_enable = {driver_enable}
 tx_enable = {tx_enable}
 rx_enable = {rx_enable}
@@ -20,7 +20,6 @@ ref_enable = {ref_enable}
 rx_freq = {rx_freq}
 tx_freq = {tx_freq}
 
-[tx]
 # DAC gain programmable in 3 dB steps:
 # 0 (maximum gain - 9 dB)
 # 1 (maximum gain - 6 dB)
@@ -52,7 +51,6 @@ tx_filter_bw = {tx_filter_bw} # 0-15
 # Number of taps of FIR-DAC: Actual number of taps = 24 + 8.tx_dac_bw, max=64
 tx_dac_bw = {tx_dac_bw}
 
-[rx]
 # 0 - not used
 # 1 - G1, highest gain power - 0 dB
 # 2 - G2, highest gain power - 6 dB
@@ -88,7 +86,6 @@ rx_pll_bw = {rx_pll_bw} # 0-3
 
 rx_adc_temp = {rx_adc_temp}
 
-[iomap]
 # 0=pll_lock_rx, 1=pll_lock_rx, 2=pll_lock_rx, 3=eol
 iomap0 = {iomap0}
 
@@ -101,7 +98,6 @@ iomap2 = {iomap2}
 # 0=pll_lock_rx in Rx mode & pll_lock_tx in all other modes
 iomap3 = {iomap3}
 
-[additional]
 dig_loopback_en = {dig_loopback_en}
 rf_loopback_en = {rf_loopback_en}
 
@@ -169,39 +165,40 @@ r = {r}
 
 pub fn read_file(sx1255_info: &mut SX1255Info, filename: &PathBuf) -> std::io::Result<()> {
 
-    #[derive(Debug, Deserialize)]
-    struct SX1255Config {
-        #[allow(dead_code)]
-        general: General,
-        /*#[allow(dead_code)]
-        rx: Rx,
-        #[allow(dead_code)]
-        tx: Tx,
-        #[allow(dead_code)]
-        iomap: Iomap,
-        #[allow(dead_code)]
-        additional: Additional,*/
-    }
-
-    #[derive(Debug, Deserialize)]
-    struct General {
-        #[allow(dead_code)]
-        driver_enable: bool,
-        #[allow(dead_code)]
-        tx_enable: bool,
-        #[allow(dead_code)]
-        rx_enable: bool,
-        #[allow(dead_code)]
-        ref_enable: bool,
-    }
-
     let content = read_to_string(filename)?;
-    let config: SX1255Config = toml::from_str(&content).expect("Failed to deserialize config file");
+    let config: SX1255Info = match toml::from_str(&content) {
+        Ok(config) => config,
+        Err(e) => {
+            return Err(Error::other(e.message()));
+        },
+    };
 
-    sx1255_info.driver_enable = config.general.driver_enable;
-    sx1255_info.tx_enable     = config.general.tx_enable;
-    sx1255_info.rx_enable     = config.general.rx_enable;
-    sx1255_info.ref_enable    = config.general.ref_enable;
+    // handle any validation that deserialization can't take care of
+    if config.tx_dac_gain > 7 { return Err(Error::other("tx_dac_gain must be between 0-7")) };
+    if config.tx_mixer_gain > 15 { return Err(Error::other("tx_mixer_gain must be between 0-15")) };
+    if config.tx_mixer_tank_res > 7 { return Err(Error::other("tx_mixer_tank_res must be between 0-7")) };
+    if config.tx_pll_bw > 3 { return Err(Error::other("tx_pll_bw must be between 0-3")) };
+    if config.tx_filter_bw > 15 { return Err(Error::other("tx_filter_bw must be between 0-15")) };
+    if config.tx_dac_bw > 5 { return Err(Error::other("tx_dac_bw must be between 0-5")) };
+    if config.rx_lna_gain > 7 { return Err(Error::other("rx_lna_gain must be between 0-7")) };
+    if config.rx_pga_gain > 15 { return Err(Error::other("rx_pga_gain must be between 0-15")) };
+    if config.rx_zin_200 > 1 { return Err(Error::other("rx_zin_200 must be between 0-1")) };
+    if config.rx_adc_bw > 7 { return Err(Error::other("rx_adc_bw must be between 0-7")) };
+    if config.rx_adc_trim > 7 { return Err(Error::other("rx_adc_trim must be between 0-7")) };
+    if config.rx_pga_bw > 4 { return Err(Error::other("rx_pga_bw must be between 0-4")) };
+    if config.rx_pll_bw > 4 { return Err(Error::other("rx_pll_bw must be between 0-4")) };
+    if config.iomap0 > 4 { return Err(Error::other("iomap0 must be between 0-4")) };
+    if config.iomap1 > 4 { return Err(Error::other("iomap1 must be between 0-4")) };
+    if config.iomap2 > 4 { return Err(Error::other("iomap2 must be between 0-4")) };
+    if config.iomap3 > 4 { return Err(Error::other("iomap3 must be between 0-4")) };
+    if config.ckout_enable > 2 { return Err(Error::other("ckout_enable must be 0 or 1")) };
+    if config.ck_select_tx_dac > 2 { return Err(Error::other("ck_select_tx_dac must be 0 or 1")) };
+    if config.iism_mode > 4 { return Err(Error::other("iism_mode must be between 0-4")) };
+    if config.iism_clk_div > 15 { return Err(Error::other("iism_clk_dv must be between 0-15")) };
+    if !VALID_R_VALUES.contains(&config.r) { return Err(Error::other("r value is not valid")) };
+    
+    // copy the values in the info struct
+    *sx1255_info = config;
 
     Ok(())
 }
