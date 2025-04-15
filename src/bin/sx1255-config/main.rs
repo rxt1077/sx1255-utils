@@ -59,22 +59,22 @@ enum Commands {
 enum SetCommands {
     /// Enables the PA driver
     DriverEnable{
-        #[arg()]
+        #[arg(action=clap::ArgAction::Set)]
         value: bool,
     },
     /// Enables the complete Tx part of the front-end (except the PA)
     TxEnable {
-        #[arg()]
+        #[arg(action=clap::ArgAction::Set)]
         value: bool,
     },
     /// Enables the complete Rx part of the front-end
     RxEnable {
-        #[arg()]
+        #[arg(action=clap::ArgAction::Set)]
         value: bool,
     },
     /// Enables the PDS and the oscillator
     RefEnable {
-        #[arg()]
+        #[arg(action=clap::ArgAction::Set)]
         value: bool,
     },
     /// Sets the Rx frequency
@@ -159,7 +159,7 @@ enum SetCommands {
     },
     /// Sets the Rx PGA gain
     RxPgaGain {
-        /// lowest gain + 2 dB * GAIN (GAIN must be between 0-16)
+        /// lowest gain + 2 dB * GAIN (GAIN must be between 0-15)
         #[arg(value_parser=clap::value_parser!(u8).range(0..16))]
         gain: u8,
     },
@@ -169,10 +169,27 @@ enum SetCommands {
         #[arg(value_parser=clap::value_parser!(u8).range(0..2))]
         imp: u8,
     },
-    /// Sets the Rx ADC trim for 36 MHz reference crystal (must be between 0-8)
+    /// Sets the Rx ADC trim for 36 MHz reference crystal (must be between 0-7)
     RxAdcTrim {
-        #[arg(value_parser=clap::value_parseesr!(u8).range(0..8))]
+        #[arg(value_parser=clap::value_parser!(u8).range(0..8))]
         trim: u8,
+    },
+    /// Sets the Rx analog roofing filter
+    RxPgaBw {
+        /// 0=1500 kHz, 1=1000 kHz, 2=750 kHz, 3=500 kHz
+        #[arg(value_parser=clap::value_parser!(u8).range(0..4))]
+        bw: u8,
+    },
+    /// Sets the Rx PLL bandwidth
+    RxPllBw {
+        /// PLL BW = (BW + 1) * 75 KHz (BW must be between 0-3)
+        #[arg(value_parser=clap::value_parser!(u8).range(0..4))]
+        bw: u8,
+    },
+    /// Puts the Rx ADC into temperature measurement mode
+    RxAdcTemp {
+        #[arg(action=clap::ArgAction::Set)]
+        value: bool,
     },
 }
 
@@ -289,8 +306,20 @@ fn main() {
                     sx1255_info.rx_zin_200 = *imp;
                 },
                 SetCommands::RxAdcTrim { trim } => {
-                    println!("Setting Rx ADC trim for 36 Mhz reference crystal to {}", *trim, OPTS.rx_adc_trim[*trim as usize]);
+                    println!("Setting Rx ADC trim for 36 Mhz reference crystal to {}", *trim);
                     sx1255_info.rx_adc_trim = *trim;
+                },
+                SetCommands::RxPgaBw { bw } => {
+                    println!("Setting Rx analog roofing filter to {} ({})", *bw, OPTS.rx_pga_bw[*bw as usize]);
+                    sx1255_info.rx_pga_bw = *bw;
+                },
+                SetCommands::RxPllBw { bw } => {
+                    println!("Setting Rx PLL bandwidth to {} ({})", *bw, OPTS.rx_pll_bw[*bw as usize]);
+                    sx1255_info.rx_pll_bw = *bw;
+                },
+                SetCommands::RxAdcTemp { value } => {
+                    println!("Setting Rx ADC temperature measurement mode to {}", *value);
+                    sx1255_info.rx_adc_temp = *value;
                 },
             };
             //set_info(&mut spi, sx1255_info);

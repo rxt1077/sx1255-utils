@@ -17,6 +17,7 @@ pub struct SettingOptions<'a> {
     pub iomap2:            [&'a str; 4],
     pub iomap3:            [&'a str; 4],
     pub ckout_enable:      [&'a str; 2],
+    pub ck_select_tx_dac:  [&'a str; 2],
 }
 
 pub const OPTS: SettingOptions<'static> = SettingOptions {
@@ -79,13 +80,16 @@ pub const OPTS: SettingOptions<'static> = SettingOptions {
     iomap2: [ "xosc_ready", "not used", "not used", "not used" ],
     iomap3: [
         "pll_lock_rx in Rx mode & pll_lock_tx in all other modes", "not used",
-        "not used" "not used" 
+        "not used", "not used" 
     ],
     ckout_enable: [
         "output clock disabled on pad CLK_OUT",
         "output clock enabled on pad CLK_OUT",
     ],
-];
+    ck_select_tx_dac: [
+        "internal clock (CLK_XTAL) used for Tx DAC",
+        "external clock (CLK_IN) used for Tx DAC",
+    ],
 };
 /*
 pub static CK_SELECT_TX_DAC_OPTS: [&str; 2] = [

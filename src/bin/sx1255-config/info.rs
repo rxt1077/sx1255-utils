@@ -140,10 +140,6 @@ impl Default for SX1255Info {
     }
 }
 
-pub static CK_SELECT_TX_DAC_OPTS: [&str; 2] = [
-    "internal clock (CLK_XTAL) used for Tx DAC",
-    "external clock (CLK_IN) used for Tx DAC",
-];
 pub static EOL_OPTS: [&str; 2] = [
     "0 to VBAT > EOL threshold",
     "1 to VBAT < EOL threshold (battery low)",
@@ -264,7 +260,7 @@ Disable IISM Tx (during Rx mode): {iism_tx_disable}
         ckout_enable          = sx1255_info.ckout_enable,
         ckout_enable_opt      = OPTS.ckout_enable[sx1255_info.ckout_enable as usize],
         ck_select_tx_dac      = sx1255_info.ck_select_tx_dac,
-        ck_select_tx_dac_opt  = CK_SELECT_TX_DAC_OPTS[sx1255_info.ck_select_tx_dac as usize],
+        ck_select_tx_dac_opt  = OPTS.ck_select_tx_dac[sx1255_info.ck_select_tx_dac as usize],
         eol                   = sx1255_info.eol,
         eol_opt               = EOL_OPTS[sx1255_info.eol as usize],
         xosc_ready            = sx1255_info.xosc_ready,
