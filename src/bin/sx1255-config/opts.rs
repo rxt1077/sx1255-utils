@@ -18,6 +18,11 @@ pub struct SettingOptions<'a> {
     pub iomap3:            [&'a str; 4],
     pub ckout_enable:      [&'a str; 2],
     pub ck_select_tx_dac:  [&'a str; 2],
+    pub eol:               [&'a str; 2],
+    pub iism_mode:         [&'a str; 4],
+    pub iism_clk_div:      [&'a str; 16],
+    pub iism_truncation:   [&'a str; 2],
+    pub iism_status_flag:  [&'a str; 2],
 }
 
 pub const OPTS: SettingOptions<'static> = SettingOptions {
@@ -90,22 +95,15 @@ pub const OPTS: SettingOptions<'static> = SettingOptions {
         "internal clock (CLK_XTAL) used for Tx DAC",
         "external clock (CLK_IN) used for Tx DAC",
     ],
+    eol: [ "0 to VBAT > EOL threshold", "1 to VBAT < EOL threshold (battery low)", ],
+    iism_mode: [ "mode A", "mode B1", "mode B2", "not used" ],
+    iism_clk_div: [
+       "1", "2", "4", "8", "12", "16", "24", "32", "48", "not used", "not used",
+       "not used", "not used", "not used", "not used", "not used",
+    ],
+    iism_truncation: [
+        "MSB is truncated, alignment on LSB",
+        "LSB is truncated, alignment on MSB",
+    ],
+    iism_status_flag: [ "no error", "error, IISM off" ],
 };
-/*
-pub static CK_SELECT_TX_DAC_OPTS: [&str; 2] = [
-    "internal clock (CLK_XTAL) used for Tx DAC",
-    "external clock (CLK_IN) used for Tx DAC",
-];
-pub static EOL_OPTS: [&str; 2] = [
-    "0 to VBAT > EOL threshold",
-    "1 to VBAT < EOL threshold (battery low)",
-];
-pub static IISM_MODE_OPTS: [&str; 4] = ["mode A", "mode B1", "mode B2", "not used"];
-pub static IISM_CLK_DIV_OPTS: [&str; 9] = [
-    "1", "2", "4", "8", "12", "16", "24", "32", "48",
-];
-pub static IISM_TRUNCATION_OPTS: [&str; 2] = [
-    "MSB is truncated, alignment on LSB",
-    "LSB is truncated, alignment on MSB",
-];
-pub static IISM_STATUS_FLAG_OPTS: [&str; 2] = ["no error", "error, IISM off"]; */

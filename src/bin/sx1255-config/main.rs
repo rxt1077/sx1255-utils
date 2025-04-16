@@ -1,7 +1,8 @@
-use std::io;
+use std::{io, thread, time};
 use clap::{Parser, Subcommand};
 use spidev::{Spidev, SpidevOptions, SpiModeFlags};
 use std::path::PathBuf;
+use gpio_cdev::{Chip, LineRequestFlags};
 
 use crate::info::{SX1255Info, get_info, print_info, set_info};
 use crate::file::{write_file, read_file};
@@ -191,6 +192,90 @@ enum SetCommands {
         #[arg(action=clap::ArgAction::Set)]
         value: bool,
     },
+    /// Mapping of DIO(0)
+    IoMap0 {
+        /// 0=pll_lock_rx, 1=pll_lock_rx, 2=pll_lock_rx, 3=eol
+        #[arg(value_parser=clap::value_parser!(u8).range(0..4))]
+        value: u8,
+    },
+    /// Mapping of DIO(1)
+    IoMap1 {
+        /// 0=pll_lock_rx
+        #[arg(value_parser=clap::value_parser!(u8).range(0..4))]
+        value: u8,
+    },
+    /// Mapping of DIO(2)
+    IoMap2 {
+        /// 0=xosc_ready
+        #[arg(value_parser=clap::value_parser!(u8).range(0..4))]
+        value: u8,
+    },
+    /// Mapping of DIO(3)
+    IoMap3 {
+        /// 0=pll_lock rx in Rx mode & pll_lock_tx in all other modes
+        #[arg(value_parser=clap::value_parser!(u8).range(0..4))]
+        value: u8,
+    },
+    /// Enables the digital loop back mode of the frontend
+    DigLoopbackEn {
+        #[arg(action=clap::ArgAction::Set)]
+        value: bool,
+    },
+    /// Enables the RF loop back mode of the frontend
+    RfLoopbackEn {
+        #[arg(action=clap::ArgAction::Set)]
+        value: bool,
+    },
+    /// Disable IISM Rx (during Tx mode)
+    IismRxDisable {
+        #[arg(action=clap::ArgAction::Set)]
+        value: bool,
+    },
+    /// Disable IISM Tx (during Rx mode)
+    IismTxDisable {
+        #[arg(action=clap::ArgAction::Set)]
+        value: bool,
+    },
+    /// Sets the IISM mode
+    IismMode {
+        /// 0=A, 1=B1, 2=B2, 3=not used
+        #[arg(value_parser=clap::value_parser!(u8).range(0..4))]
+        mode: u8,
+    },
+    /// Sets the XTAL/CLK_OUT division factor
+    IismClkDiv {
+        /// 0=1, 1=2, 2=4, 3=8, 4=12, 5=16, 6=24, 7=32, 8=48, higher values not used
+        #[arg(value_parser=clap::value_parser!(u8).range(0..16))]
+        factor: u8,
+    },
+    /// Sets the interpolation/decimation factor
+    R {
+        /// 8, 16, 24, 32, 48, 64, 96, 128, 192, 256, 384, 512, 768, 1536
+        /// 9, 18, 27, 36, 54, 72, 108, 144, 216, 288, 432, 576, 864, 1728
+        #[arg(verbatim_doc_comment, value_parser=["8", "16", "24", "32", "48",
+              "64", "96", "128", "192", "256", "384", "512", "768", "1536",
+              "9", "18", "27", "36", "54", "72", "108", "144", "216", "288",
+              "432", "576", "864", "1728"])]
+        r_str: String,
+    },
+    /// Sets the IISM truncation mode
+    IismTruncation {
+        /// 0=MSB is truncated, alignment of LSB, 1=LSB is truncated, alignment on MSB
+        #[arg(value_parser=clap::value_parser!(u8).range(0..2))]
+        mode: u8,
+    },
+}
+
+fn reset() -> Result<(), gpio_cdev::Error> {
+    let mut chip = Chip::new("/dev/gpiochip0")?;
+    let output = chip.get_line(25)?;
+    let output_handle = output.request(LineRequestFlags::OUTPUT, 0, "sx1255-config")?;
+    thread::sleep(time::Duration::from_millis(100));
+    output_handle.set_value(1)?;
+    thread::sleep(time::Duration::from_millis(100));
+    output_handle.set_value(0)?;
+    thread::sleep(time::Duration::from_millis(2500));
+    Ok(())
 }
 
 fn create_spi() -> io::Result<Spidev> {
@@ -200,17 +285,17 @@ fn create_spi() -> io::Result<Spidev> {
 }
 
 fn main() {
-    /* let mut spi = match create_spi() {
+    let mut spi = match create_spi() {
         Ok(spi) => spi,
         Err(e) => {
             println!("Unable to open SPI: {}", e);
             return
         },
-    }; */
+    };
 
     let cli = Cli::parse();
     let mut sx1255_info = SX1255Info::default();
-    //get_info(&mut spi, &mut sx1255_info);
+    get_info(&mut spi, &mut sx1255_info);
 
     match &cli.command {
         Commands::Info => {
@@ -238,6 +323,13 @@ fn main() {
         },
         Commands::Reset => {
             println!("Resetting");
+            match reset() {
+                Ok(_) => {},
+                Err(e) => {
+                    println!("Error during reset: {}", e);
+                    return
+                },
+            };
         },
         Commands::Set { name } => {
             match name {
@@ -321,8 +413,57 @@ fn main() {
                     println!("Setting Rx ADC temperature measurement mode to {}", *value);
                     sx1255_info.rx_adc_temp = *value;
                 },
+                SetCommands::IoMap0 { value } => {
+                    println!("Setting mapping of DIO(0) {} ({})", *value, OPTS.iomap0[*value as usize]);
+                    sx1255_info.iomap0 = *value;
+                },
+                SetCommands::IoMap1 { value } => {
+                    println!("Setting mapping of DIO(1) {} ({})", *value, OPTS.iomap1[*value as usize]);
+                    sx1255_info.iomap1 = *value;
+                },
+                SetCommands::IoMap2 { value } => {
+                    println!("Setting mapping of DIO(2) {} ({})", *value, OPTS.iomap2[*value as usize]);
+                    sx1255_info.iomap2= *value;
+                },
+                SetCommands::IoMap3 { value } => {
+                    println!("Setting mapping of DIO(3) {} ({})", *value, OPTS.iomap3[*value as usize]);
+                    sx1255_info.iomap3 = *value;
+                },
+                SetCommands::DigLoopbackEn { value } => {
+                    println!("Setting digital loopback enable to {}", *value);
+                    sx1255_info.dig_loopback_en = *value;
+                },
+                SetCommands::RfLoopbackEn { value } => {
+                    println!("Setting digital loopback enable to {}", *value);
+                    sx1255_info.rf_loopback_en = *value;
+                },
+                SetCommands::IismRxDisable { value } => {
+                    println!("Setting flag to disable IISM Rx (during Tx mode) {}", *value);
+                    sx1255_info.iism_rx_disable = *value;
+                },
+                SetCommands::IismTxDisable { value } => {
+                    println!("Setting flag to disable IISM Tx (during Rx mode) {}", *value);
+                    sx1255_info.iism_tx_disable = *value;
+                },
+                SetCommands::IismMode { mode } => {
+                    println!("Setting IISM mode to {} ({})", *mode, OPTS.iism_mode[*mode as usize]);
+                    sx1255_info.iism_mode = *mode;
+                },
+                SetCommands::IismClkDiv { factor } => {
+                    println!("Setting XTAL/CLK_OUT division factor to {} ({})", *factor, OPTS.iism_clk_div[*factor as usize]);
+                    sx1255_info.iism_clk_div = *factor;
+                },
+                SetCommands::R { r_str } => {
+                    let r: u32 = r_str.parse().unwrap();
+                    println!("Setting interpolation/decimation factor to {}", r);
+                    sx1255_info.r = r;
+                },
+                SetCommands::IismTruncation { mode } => {
+                    println!("Setting IISM truncation mode in Rx and Tx to {} ({})", *mode, OPTS.iism_truncation[*mode as usize]);
+                    sx1255_info.iism_truncation = *mode;
+                },
             };
-            //set_info(&mut spi, sx1255_info);
+            set_info(&mut spi, sx1255_info);
         },
     }
 }

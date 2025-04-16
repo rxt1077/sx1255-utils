@@ -140,20 +140,6 @@ impl Default for SX1255Info {
     }
 }
 
-pub static EOL_OPTS: [&str; 2] = [
-    "0 to VBAT > EOL threshold",
-    "1 to VBAT < EOL threshold (battery low)",
-];
-pub static IISM_MODE_OPTS: [&str; 4] = ["mode A", "mode B1", "mode B2", "not used"];
-pub static IISM_CLK_DIV_OPTS: [&str; 9] = [
-    "1", "2", "4", "8", "12", "16", "24", "32", "48",
-];
-pub static IISM_TRUNCATION_OPTS: [&str; 2] = [
-    "MSB is truncated, alignment on LSB",
-    "LSB is truncated, alignment on MSB",
-];
-pub static IISM_STATUS_FLAG_OPTS: [&str; 2] = ["no error", "error, IISM off"];
-
 pub fn print_info(sx1255_info: SX1255Info) {
     println!("
 General Registers
@@ -262,21 +248,21 @@ Disable IISM Tx (during Rx mode): {iism_tx_disable}
         ck_select_tx_dac      = sx1255_info.ck_select_tx_dac,
         ck_select_tx_dac_opt  = OPTS.ck_select_tx_dac[sx1255_info.ck_select_tx_dac as usize],
         eol                   = sx1255_info.eol,
-        eol_opt               = EOL_OPTS[sx1255_info.eol as usize],
+        eol_opt               = OPTS.eol[sx1255_info.eol as usize],
         xosc_ready            = sx1255_info.xosc_ready,
         pll_lock_rx           = sx1255_info.pll_lock_rx,
         pll_lock_tx           = sx1255_info.pll_lock_tx,
         iism_rx_disable       = sx1255_info.iism_rx_disable,
         iism_tx_disable       = sx1255_info.iism_tx_disable,
         iism_mode             = sx1255_info.iism_mode,
-        iism_mode_opt         = IISM_MODE_OPTS[sx1255_info.iism_mode as usize],
+        iism_mode_opt         = OPTS.iism_mode[sx1255_info.iism_mode as usize],
         iism_clk_div          = sx1255_info.iism_clk_div,
-        iism_clk_div_opt      = IISM_CLK_DIV_OPTS[sx1255_info.iism_clk_div as usize],
+        iism_clk_div_opt      = OPTS.iism_clk_div[sx1255_info.iism_clk_div as usize],
         r                     = sx1255_info.r,
         iism_truncation       = sx1255_info.iism_truncation,
-        iism_truncation_opt   = IISM_TRUNCATION_OPTS[sx1255_info.iism_truncation as usize],
+        iism_truncation_opt   = OPTS.iism_truncation[sx1255_info.iism_truncation as usize],
         iism_status_flag      = sx1255_info.iism_status_flag,
-        iism_status_flag_opt  = IISM_STATUS_FLAG_OPTS[sx1255_info.iism_status_flag as usize],
+        iism_status_flag_opt  = OPTS.iism_status_flag[sx1255_info.iism_status_flag as usize],
     );
 }
 
