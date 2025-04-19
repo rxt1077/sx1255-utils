@@ -1,4 +1,4 @@
-use std::{io, thread, time};
+use std::{io};
 use clap::{Parser, Subcommand};
 use spidev::{Spidev, SpidevOptions, SpiModeFlags};
 use std::path::PathBuf;
@@ -270,11 +270,8 @@ fn reset() -> Result<(), gpio_cdev::Error> {
     let mut chip = Chip::new("/dev/gpiochip0")?;
     let output = chip.get_line(25)?;
     let output_handle = output.request(LineRequestFlags::OUTPUT, 0, "sx1255-config")?;
-    thread::sleep(time::Duration::from_millis(100));
     output_handle.set_value(1)?;
-    thread::sleep(time::Duration::from_millis(100));
     output_handle.set_value(0)?;
-    thread::sleep(time::Duration::from_millis(2500));
     Ok(())
 }
 
@@ -327,6 +324,8 @@ fn main() {
                 Ok(_) => {},
                 Err(e) => {
                     println!("Error during reset: {}", e);
+                    println!("The pin may be in use by the deprecated sysfs interface.");
+                    println!("Try running: echo 537 > /sys/class/gpio/unexport");
                     return
                 },
             };
