@@ -789,6 +789,7 @@ dependencies = [
  "gpio-cdev",
  "serde",
  "spidev",
+ "tokio",
  "toml",
  "zeromq",
 ]
