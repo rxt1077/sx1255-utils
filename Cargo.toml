@@ -4,6 +4,7 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
+alsa = "0.9.1"
 chrono = "0.4.40"
 clap = { version = "4.5.35", features = ["derive"] }
 gpio-cdev = "0.6.0"

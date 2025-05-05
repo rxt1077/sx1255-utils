@@ -42,6 +42,7 @@ async fn main() {
                 return
             },
         };
+        println!("{:?}", recv);
         count += 1;
         let elapsed: u32 = start.elapsed().as_secs() as u32;
         if elapsed >= 10 {
