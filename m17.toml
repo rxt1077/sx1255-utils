@@ -1,0 +1,112 @@
+# SX1255 configuration
+# created by sx1255-config on 2025-05-05 22:07:59.144531376 UTC
+
+driver_enable = true
+tx_enable = true
+rx_enable = true
+ref_enable = true
+rx_freq = 435000000
+tx_freq = 438000000
+
+# DAC gain programmable in 3 dB steps:
+# 0 (maximum gain - 9 dB)
+# 1 (maximum gain - 6 dB)
+# 2 (maximum gain - 3 dB)
+# 3 (maximum gain (0 dB full scale))
+# Test modes, not recommended:
+# 4 (Max gain - 9 dB with test Vref voltage)
+# 5 (Max gain - 6 dB with test Vref voltage)
+# 6 (Max gain - 3 dB with test Vref voltage)
+# 7 (Max gain, 0 dBFS with test Vref voltage)
+tx_dac_gain = 1
+
+# Gain ~ -37.5 + 2 x tx_mixer_gain in dB
+tx_mixer_gain = 14 # 0-15
+
+# Cap = 128 * tx_mixer_tank_cap [fF]
+tx_mixer_tank_cap = 3 # 0-7
+
+# 0=0.95kΩ, 1=1.11kΩ, 2=1.32kΩ, 3=1.65kΩ, 4=2.18Ω
+# 5=3.24kΩ, 6=6.00kΩ, 7=none => about 64kΩ
+tx_mixer_tank_res = 7
+
+# PLL BW = (tx_pll_bw + 1)*75 KHz
+tx_pll_bw = 0 # 0-3
+
+# BW3dB = 17.15 / (41 - tx_filter_bw) MHz
+tx_filter_bw = 0 # 0-15
+
+# Number of taps of FIR-DAC: Actual number of taps = 24 + 8.tx_dac_bw, max=64
+tx_dac_bw = 5
+
+# 0 - not used
+# 1 - G1, highest gain power - 0 dB
+# 2 - G2, highest gain power - 6 dB
+# 3 - G3, highest gain power - 12 dB
+# 4 - G4, highest gain power - 24 dB
+# 5 - G5, highest gain power - 36 dB
+# 6 - G6, highest gain power - 48 dB
+# 7 - not used
+rx_lna_gain = 1
+
+# Gain=lowest gain + 2dB * rx_pga_gain
+rx_pga_gain = 15 # 0-7
+
+# 0=50Ω, 1=200Ω
+rx_zin_200 = 1
+
+# For BW>400kHz SSB use 7
+# For 200kHz< BW<400kHz SSB use 5
+# For 100kHz<BW<400kHz SSB use 2
+# use 1 instead (???)
+rx_adc_bw = 1
+
+rx_adc_trim = 5 # 0-7
+
+# 0=1500 kHz
+# 1=1000 kHz
+# 2=750 kHz
+# 3=500 kHz 
+rx_pga_bw = 0
+
+# PLL BW = (rx_pll_bw + 1)*75 KHz 
+rx_pll_bw = 0 # 0-3
+
+rx_adc_temp = false
+
+# 0=pll_lock_rx, 1=pll_lock_rx, 2=pll_lock_rx, 3=eol
+iomap0 = 0
+
+# 0=pll_lock_tx
+iomap1 = 0
+
+# 0=xosc_ready
+iomap2 = 0
+
+# 0=pll_lock_rx in Rx mode & pll_lock_tx in all other modes
+iomap3 = 0
+
+dig_loopback_en = false
+rf_loopback_en = false
+
+# 0: output clock disabled on pad CLK_OUT
+# 1: output clock enabled on pad CLK_OUT
+ckout_enable = 1
+
+# 0: internal clock (CLK_XTAL) used for Tx DAC
+# 1: external clock (CLK_IN) used for Tx DAC
+ck_select_tx_dac = 0
+
+iism_rx_disable = false
+iism_tx_disable = false
+
+# 0=mode A, 1=mode B1, 2=mode B2, 3=not used
+iism_mode = 2
+
+# 0=1, 1=2, 2=4, 3=8, 4=12, 5=16, 6=24, 7=32 
+iism_clk_div = 2
+
+# decimation/interpolation factor, valid values:
+# set 1: 8, 16, 24, 32, 48, 64, 96, 128, 192, 256, 384, 512, 768, 1536
+# set 2: 9, 18, 27, 36, 54, 72, 108, 144, 216, 288, 432, 576, 864, 1728
+r = 256

@@ -1,9 +1,7 @@
 use zeromq::prelude::*;
 use zeromq::ZmqMessage;
 use clap::Parser;
-use std::time::{Instant, Duration};
-use std::io::Read;
-use tokio::time::sleep;
+use std::time::Instant;
 use alsa::{Direction, ValueOr};
 use alsa::pcm::{PCM, HwParams, Format, Access};
 
@@ -16,7 +14,7 @@ struct Args {
     device: String,
 
     /// sample rate for audio device
-    #[arg(short, long, default_value="192000")]
+    #[arg(short, long, default_value="125000")]
     sample_rate: u32,
 
     /// local ZeroMQ endpoint
@@ -59,7 +57,7 @@ async fn main() {
             return
         }
     }
-    match hwp.set_rate(args.sample_rate, ValueOr::Greater) {
+    match hwp.set_rate(args.sample_rate, ValueOr::Nearest) {
         Ok(_) => {},
         Err(e) => {
             println!("Unable to set audio sample rate to {}: {}", &args.sample_rate, e);
@@ -86,7 +84,7 @@ async fn main() {
             println!("Unable to set audio HW params: {}", e);
         },
     }
-    let mut io = match pcm.io_i16() {
+    let io = match pcm.io_i16() {
         Ok(io) => io,
         Err(e) => {
             println!("Unable to get IO for audio PCM: {}", e);
@@ -105,19 +103,25 @@ async fn main() {
     }
 
     println!("Starting sending loop");
-    let mut count = 0u32;
     let mut start = Instant::now();
-    let mut buf = [0u8; 5000];
+    let mut buf = [0i16; 2500];
+    let mut frames: usize = 0;
     loop {
-        match io.read_exact(&mut buf) {
-            Ok(_) => {},
+        frames += match io.readi(&mut buf) {
+            Ok(frames) => {
+                if frames != 1250 {
+                    println!("Frame size not 1250: {}", frames);
+                    return
+                }
+                frames
+            },
             Err(e) => {
                 println!("Error reading audio: {}", e);
                 return
             },
-        }
-        let m: ZmqMessage = ZmqMessage::from(buf.to_vec());
-        sleep(Duration::from_millis(100)).await;
+        };
+        //let m: ZmqMessage = ZmqMessage::from(buf.to_vec());
+        let m: ZmqMessage = ZmqMessage::from("asdf");
 
         match socket.send(m).await {
             Ok(_) => {},
@@ -128,11 +132,11 @@ async fn main() {
         }
 
         if args.print_sample_rate {
-            count += 1;
             let elapsed: u32 = start.elapsed().as_secs() as u32;
             if elapsed >= 10 {
-                println!("{} samples/second", ((5000 / 4) * count) / elapsed);
-                count = 0;
+                println!("{} frames in {} seconds", frames, elapsed);
+                println!("{} {}", buf[0], buf[1]);
+                frames = 0;
                 start = Instant::now();
             }
         }
