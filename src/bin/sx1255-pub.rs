@@ -2,6 +2,7 @@ use zeromq::prelude::*;
 use zeromq::ZmqMessage;
 use clap::Parser;
 use std::time::Instant;
+use std::io::Read;
 use alsa::{Direction, ValueOr};
 use alsa::pcm::{PCM, HwParams, Format, Access};
 
@@ -9,16 +10,20 @@ use alsa::pcm::{PCM, HwParams, Format, Access};
 /// on a ZeroMQ pub socket
 #[derive(Parser)]
 struct Args {
-    /// audio device
-    #[arg(short, long, default_value="default")]
+    /// audio device (run `arecord -l` to see what's available)
+    #[arg(short, long, default_value="hw:1,1")]
     device: String,
 
     /// sample rate for audio device
-    #[arg(short, long, default_value="125000")]
+    #[arg(short='r', long, default_value="125000")]
     sample_rate: u32,
 
+    /// sample format for audio device
+    #[arg(short='s', long, value_parser=["S16_LE", "S32_LE"], default_value="S16_LE")]
+    sample_format: String,
+
     /// local ZeroMQ endpoint
-    #[arg(short, long, default_value="tcp://*:17017")]
+    #[arg(short, long, default_value="tcp://0.0.0.0:17017")]
     endpoint: String,
 
     /// message size in bytes (must be a multiple of SAMPLE_SIZE * 2)
@@ -64,10 +69,18 @@ async fn main() {
             return
         },
     }
-    match hwp.set_format(Format::s16()) {
+    let format = match args.sample_format.as_str() {
+        "S16_LE" => Format::s16(),
+        "S32_LE" => Format::s32(),
+        _ => {
+            println!("Invalid audio format");
+            return
+        },
+    };
+    match hwp.set_format(format) {
         Ok(_) => {},
         Err(e) => {
-            println!("Unable to set audio format to {}: {}", Format::s16(), e);
+            println!("Unable to set audio format to {}: {}", format, e);
             return
         },
     }
@@ -84,7 +97,7 @@ async fn main() {
             println!("Unable to set audio HW params: {}", e);
         },
     }
-    let io = match pcm.io_i16() {
+    let mut io = match pcm.io_i16() {
         Ok(io) => io,
         Err(e) => {
             println!("Unable to get IO for audio PCM: {}", e);
@@ -104,13 +117,14 @@ async fn main() {
 
     println!("Starting sending loop");
     let mut start = Instant::now();
-    let mut buf = [0i16; 2500];
+//    let mut buf = [0i16; 2500];
     let mut frames: usize = 0;
     loop {
-        frames += match io.readi(&mut buf) {
+        let mut buf = vec![0u8; 5000];
+        frames += match io.read(&mut buf) {
             Ok(frames) => {
-                if frames != 1250 {
-                    println!("Frame size not 1250: {}", frames);
+                if frames != 5000 {
+                    println!("Frame size not 5000: {}", frames);
                     return
                 }
                 frames
@@ -120,8 +134,7 @@ async fn main() {
                 return
             },
         };
-        //let m: ZmqMessage = ZmqMessage::from(buf.to_vec());
-        let m: ZmqMessage = ZmqMessage::from("asdf");
+        let m: ZmqMessage = ZmqMessage::from(buf);
 
         match socket.send(m).await {
             Ok(_) => {},
@@ -135,7 +148,6 @@ async fn main() {
             let elapsed: u32 = start.elapsed().as_secs() as u32;
             if elapsed >= 10 {
                 println!("{} frames in {} seconds", frames, elapsed);
-                println!("{} {}", buf[0], buf[1]);
                 frames = 0;
                 start = Instant::now();
             }
