@@ -317,6 +317,7 @@ fn main() {
                     return
                 },
             };
+            set_info(&mut spi, sx1255_info);
         },
         Commands::Reset => {
             println!("Resetting");

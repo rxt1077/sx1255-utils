@@ -15,7 +15,7 @@ struct Args {
     device: String,
 
     /// sample rate for audio device
-    #[arg(short='r', long, default_value="125000")]
+    #[arg(short='r', long, default_value="192000")]
     sample_rate: u32,
 
     /// sample format for audio device
@@ -28,7 +28,7 @@ struct Args {
 
     /// message size in bytes (must be a multiple of SAMPLE_SIZE * 2)
     #[arg(short, long, default_value_t=5000)]
-    msg_size: u32,
+    msg_size: usize,
 
     /// print the rate at which we're publishing samples every 10 seconds
     #[arg(short, long)]
@@ -97,13 +97,7 @@ async fn main() {
             println!("Unable to set audio HW params: {}", e);
         },
     }
-    let mut io = match pcm.io_i16() {
-        Ok(io) => io,
-        Err(e) => {
-            println!("Unable to get IO for audio PCM: {}", e);
-            return
-        },
-    };
+    let mut io = pcm.io_bytes();
 
     println!("Starting ZeroMQ server");
     let mut socket = zeromq::PubSocket::new();
@@ -117,17 +111,16 @@ async fn main() {
 
     println!("Starting sending loop");
     let mut start = Instant::now();
-//    let mut buf = [0i16; 2500];
-    let mut frames: usize = 0;
+    let mut bytes: usize = 0;
     loop {
-        let mut buf = vec![0u8; 5000];
-        frames += match io.read(&mut buf) {
-            Ok(frames) => {
-                if frames != 5000 {
-                    println!("Frame size not 5000: {}", frames);
+        let mut buf = vec![0u8; args.msg_size];
+        bytes += match io.read(&mut buf) {
+            Ok(bytes_read) => {
+                if bytes_read != args.msg_size {
+                    println!("Bytes read not {}: {}", args.msg_size, bytes_read);
                     return
                 }
-                frames
+                bytes_read
             },
             Err(e) => {
                 println!("Error reading audio: {}", e);
@@ -145,10 +138,14 @@ async fn main() {
         }
 
         if args.print_sample_rate {
-            let elapsed: u32 = start.elapsed().as_secs() as u32;
+            let elapsed: usize = start.elapsed().as_secs() as usize;
             if elapsed >= 10 {
-                println!("{} frames in {} seconds", frames, elapsed);
-                frames = 0;
+                match args.sample_format.as_str() {
+                    "S16_LE" => { println!("{} samples/second", bytes/4/elapsed); }
+                    "S32_LE" => { println!("{} samples/second", bytes/8/elapsed); }
+                           _ => { println!("{} bytes in {} seconds", bytes, elapsed); }
+                }
+                bytes = 0;
                 start = Instant::now();
             }
         }
