@@ -1,5 +1,3 @@
-use zeromq::prelude::*;
-use zeromq::ZmqMessage;
 use clap::Parser;
 use std::time::Instant;
 use std::io::Read;
@@ -35,8 +33,7 @@ struct Args {
     print_sample_rate: bool,
 }
 
-#[tokio::main]
-async fn main() {
+fn main() {
     let args = Args::parse();
 
     println!("Opening audio device");
@@ -100,11 +97,18 @@ async fn main() {
     let mut io = pcm.io_bytes();
 
     println!("Starting ZeroMQ server");
-    let mut socket = zeromq::PubSocket::new();
-    match socket.bind(&args.endpoint).await {
+    let context = zmq::Context::new();
+    let publisher = match context.socket(zmq::PUB) {
+        Ok(publisher) => publisher,
+        Err(e) => {
+            println!("Error getting socket: {}", e);
+            return
+        },
+    };
+    match publisher.bind(&args.endpoint) {
         Ok(_) => {},
         Err(e) => {
-            println!("Error binding to socket: {}", e);
+            println!("Failed binding publisher: {}", e);
             return
         },
     }
@@ -127,9 +131,8 @@ async fn main() {
                 return
             },
         };
-        let m: ZmqMessage = ZmqMessage::from(buf);
 
-        match socket.send(m).await {
+        match publisher.send(buf, zmq::DONTWAIT) {
             Ok(_) => {},
             Err(e) => {
                 println!("Error sending: {}", e);
