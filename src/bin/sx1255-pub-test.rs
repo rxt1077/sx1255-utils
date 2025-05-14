@@ -1,4 +1,3 @@
-use zeromq::prelude::*;
 use clap::Parser;
 use std::time::Instant;
 
@@ -10,33 +9,40 @@ struct Args {
     endpoint: String,
 }
 
-#[tokio::main]
-async fn main() {
+fn main() {
     let args = Args::parse();
     
     println!("Connecting to server...");
-    let mut socket = zeromq::SubSocket::new();
-    match socket.connect(&args.endpoint).await {
+    let context = zmq::Context::new();
+    let subscriber = match context.socket(zmq::SUB) {
+        Ok(subscriber) => subscriber, 
+        Err(e) => {
+            println!("Error creating subscriber: {}", e);
+            return
+        },
+    };
+    match subscriber.connect(&args.endpoint) {
         Ok(_) => {},
         Err(e) => {
-            println!("Error connecting to socket: {}", e);
+            println!("Error connecting subscriber: {}", e);
             return
         },
     }
-
-    match socket.subscribe("").await {
+    match subscriber.set_subscribe(b"") {
         Ok(_) => {},
         Err(e) => {
-            println!("Error subscribing: {}", e);
+            println!("Could not subscribe to all topics: {}", e);
+            return
         },
     }
-
+    
     println!("Starting receiving loop...");
     let mut count = 0u32;
     let mut start = Instant::now();
+    let mut msg = zmq::Message::new();
     loop {
-        let recv = match socket.recv().await {
-            Ok(recv) => recv,
+        match subscriber.recv(&mut msg, 0) {
+            Ok(_) => {},
             Err(e) => {
                 println!("Error receiving: {}", e);
                 return

@@ -10,7 +10,5 @@ clap = { version = "4.5.35", features = ["derive"] }
 gpio-cdev = "0.6.0"
 serde = { version = "1.0.219", features = ["derive"] }
 spidev = "0.7.0"
-tokio = { version = "1.44.2", features = ["full"] }
 toml = "0.8.20"
-zeromq = "0.4.1"
 zmq = "0.10.0"
