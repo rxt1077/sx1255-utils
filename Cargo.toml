@@ -1,6 +1,6 @@
 [package]
 name = "sx1255-utils"
-version = "0.2.0"
+version = "0.2.1"
 license = "GPLv3"
 description = "Utilities for working with the M17 SX1255 HAT"
 readme = "README.md"
