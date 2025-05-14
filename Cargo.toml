@@ -1,6 +1,11 @@
 [package]
 name = "sx1255-utils"
-version = "0.1.0"
+version = "0.2.0"
+license = "GPLv3"
+description = "Utilities for working with the M17 SX1255 HAT"
+readme = "README.md"
+repository = "https://github.com/rxt1077/sx1255-utils"
+authors = ["Ryan Tolboom <ryan.tolboom@njit.edu>"]
 edition = "2024"
 
 [dependencies]

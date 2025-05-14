@@ -66,3 +66,23 @@ Commands:
 Options:
   -h, --help  Print help
 ```
+
+## sx1255-pub
+
+```
+Takes IQ baseband samples from SX1255 vi the I2S audio device and puts them on a ZeroMQ pub socket
+
+Usage: sx1255-pub [OPTIONS]
+
+Options:
+  -d, --device <DEVICE>                audio device (run `arecord -l` to see what's available) [default:
+ hw:1,1]
+  -r, --sample-rate <SAMPLE_RATE>      sample rate for audio device [default: 192000]
+  -s, --sample-format <SAMPLE_FORMAT>  sample format for audio device [default: S16_LE] [possible values
+: S16_LE, S32_LE]
+  -e, --endpoint <ENDPOINT>            local ZeroMQ endpoint [default: tcp://0.0.0.0:17017]
+  -m, --msg-size <MSG_SIZE>            message size in bytes (must be a multiple of SAMPLE_SIZE * 2) [de
+fault: 5000]
+  -p, --print-sample-rate              print the rate at which we're publishing samples every 10 seconds
+  -h, --help                           Print help
+```

@@ -4,7 +4,7 @@ use std::io::Read;
 use alsa::{Direction, ValueOr};
 use alsa::pcm::{PCM, HwParams, Format, Access};
 
-/// takes IQ baseband samples from SX1255 vi the I2S audio device and puts them
+/// Takes IQ baseband samples from SX1255 vi the I2S audio device and puts them
 /// on a ZeroMQ pub socket
 #[derive(Parser)]
 struct Args {
